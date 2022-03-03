@@ -1,8 +1,7 @@
 <script lang="ts">
 	const J2J_VALUE = 10240000;
 	const J2J_FOOTER_SIZE = 32;
-
-	import * as CRC32 from 'crc-32/crc32c';
+	
 	import { onMount } from 'svelte';
 
 	let streamSaver;

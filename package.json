@@ -36,7 +36,6 @@
   },
   "type": "module",
   "dependencies": {
-    "crc-32": "^1.2.1",
     "streamsaver": "^2.0.6"
   }
 }
