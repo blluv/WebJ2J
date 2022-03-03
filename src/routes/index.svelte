@@ -98,10 +98,14 @@
 			let footer_info = parseFooter(footer);
 			if (!footer_info) {
 				alert('J2J 파일이 아닙니다.');
+				return;
 			}
 
-			let password = prompt('비밀번호를 입력해주세요', '');
-
+			let password = prompt('비밀번호를 입력해주세요');
+			if (password == null) {
+				alert('취소하셨습니다.');
+				return;
+			}
 			let blockCount = Math.max(Math.floor(J2J_VALUE / (filesize * 100)), 1);
 
 			let iv: Uint8Array;
@@ -146,7 +150,7 @@
 			}
 
 			{
-				let start = blockCount * J2J_VALUE
+				let start = blockCount * J2J_VALUE;
 				let end = filesize - blockCount * J2J_VALUE - J2J_FOOTER_SIZE;
 				let remain = end - start;
 
