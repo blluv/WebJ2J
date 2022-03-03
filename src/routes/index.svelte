@@ -139,7 +139,7 @@
 					}
 					let chunk = new Uint8Array(await file.slice(start, ee).arrayBuffer());
 					for (let i = 0; i < chunk.byteLength; i++) {
-						idx += i;
+						idx += 1;
 						chunk[idx] ^= iv[idx];
 						iv[idx] ^= chunk[idx];
 					}
@@ -177,7 +177,7 @@
 					}
 					let chunk = new Uint8Array(await file.slice(start, ee).arrayBuffer());
 					for (let i = 0; i < chunk.byteLength; i++) {
-						idx += i;
+						idx += 1;
 						chunk[idx] ^= iv[idx];
 						iv[idx] ^= chunk[idx];
 					}
