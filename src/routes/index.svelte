@@ -59,16 +59,12 @@
 	}
 
 	function createIVWithPassword(password) {
-		let iv = new Uint8Array(J2J_VALUE);
+		let iv = createIV();
 		password = stringToBytes(password);
 
 		let skip = false;
 		let skipCount = 0;
 		let passwordIndex = 0;
-
-		for (let i = 0; i < J2J_VALUE; i++) {
-			iv[i] = i % 256;
-		}
 
 		for (let i = 0; i < J2J_VALUE; i++) {
 			if (skip) {
@@ -96,6 +92,7 @@
 		if (files && files.length > 0) {
 			let file = files[0];
 			let filesize = file.size;
+			let filename = file.name;
 
 			let footer = await file.slice(filesize - J2J_FOOTER_SIZE).arrayBuffer();
 			let footer_info = parseFooter(footer);
@@ -103,57 +100,89 @@
 				alert('J2J 파일이 아닙니다.');
 			}
 
-			let blockCount = Math.max(Math.floor(J2J_VALUE / (filesize * 100)), 1);
-			let iv = createIVWithPassword('qwerty');
+			let password = prompt('비밀번호를 입력해주세요', '');
 
-			let stream = streamSaver.createWriteStream('wow.exe', {
+			let blockCount = Math.max(Math.floor(J2J_VALUE / (filesize * 100)), 1);
+
+			let iv: Uint8Array;
+			if (password == '') {
+				iv = createIV();
+			} else {
+				iv = createIVWithPassword(password);
+			}
+
+			let outputName: string;
+			if (filename.endsWith('.j2j') || filename.endsWith('.J2J')) {
+				outputName = filename.substring(0, filename.length - 4);
+			} else {
+				outputName = filename + '.dec';
+			}
+
+			let stream = streamSaver.createWriteStream(outputName, {
 				size: filesize - J2J_FOOTER_SIZE
 			});
-			
+
 			const writer = stream.getWriter();
-
 			for (let c = 0; c <= blockCount; c++) {
-				let chunk = new Uint8Array(
-					await file.slice(c * J2J_VALUE, c * J2J_VALUE + J2J_VALUE).arrayBuffer()
-				);
+				let start = c * J2J_VALUE;
+				let end = start + J2J_VALUE;
+				let remain = end - start;
 
-				for (let i = 0; i < J2J_VALUE; i++) {
-					chunk[i] ^= iv[i];
-					iv[i] ^= chunk[i];
+				let idx = 0;
+				while (remain > 0) {
+					let ee = start + 10240;
+					if (ee > end) {
+						ee = end;
+					}
+					let chunk = new Uint8Array(await file.slice(start, ee).arrayBuffer());
+					for (let i = 0; i < chunk.byteLength; i++) {
+						idx += i;
+						chunk[idx] ^= iv[idx];
+						iv[idx] ^= chunk[idx];
+					}
+					await writer.write(chunk);
+					remain -= ee - start;
 				}
-
-				writer.write(chunk);
-				chunk = null;
 			}
 
 			{
-				let chunk = new Uint8Array(
-					await file
-						.slice(blockCount * J2J_VALUE, filesize - blockCount * J2J_VALUE - J2J_FOOTER_SIZE)
-						.arrayBuffer()
-				);
-				writer.write(chunk);
-				chunk = null;
+				let start = blockCount * J2J_VALUE
+				let end = filesize - blockCount * J2J_VALUE - J2J_FOOTER_SIZE;
+				let remain = end - start;
+
+				while (remain > 0) {
+					let ee = start + 10240;
+					if (ee > end) {
+						ee = end;
+					}
+					let chunk = new Uint8Array(await file.slice(start, ee).arrayBuffer());
+					await writer.write(chunk);
+					remain -= ee - start;
+				}
 			}
 
 			for (let c = 0; c <= blockCount; c++) {
-				let chunk = new Uint8Array(
-					await file
-						.slice(
-							filesize - blockCount * J2J_VALUE - J2J_FOOTER_SIZE + c * J2J_VALUE,
-							filesize - blockCount * J2J_VALUE - J2J_FOOTER_SIZE + c * J2J_VALUE + J2J_VALUE
-						)
-						.arrayBuffer()
-				);
+				let start = filesize - blockCount * J2J_VALUE - J2J_FOOTER_SIZE + c * J2J_VALUE;
+				let end = filesize - blockCount * J2J_VALUE - J2J_FOOTER_SIZE + c * J2J_VALUE + J2J_VALUE;
+				let remain = end - start;
 
-				for (let i = 0; i < J2J_VALUE; i++) {
-					chunk[i] ^= iv[i];
-					iv[i] ^= chunk[i];
+				let idx = 0;
+				while (remain > 0) {
+					let ee = start + 10240;
+					if (ee > end) {
+						ee = end;
+					}
+					let chunk = new Uint8Array(await file.slice(start, ee).arrayBuffer());
+					for (let i = 0; i < chunk.byteLength; i++) {
+						idx += i;
+						chunk[idx] ^= iv[idx];
+						iv[idx] ^= chunk[idx];
+					}
+					await writer.write(chunk);
+					remain -= ee - start;
 				}
-				chunk = null;
 			}
-
-			writer.close()
+			writer.close();
 		}
 	}
 </script>
