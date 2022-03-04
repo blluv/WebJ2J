@@ -1,4 +1,5 @@
 <script lang="ts">
+	const CHUNK_SIZE = 1024000;
 	const J2J_VALUE = 10240000;
 	const J2J_FOOTER_SIZE = 32;
 	
@@ -126,25 +127,26 @@
 			});
 
 			const writer = stream.getWriter();
-			for (let c = 0; c <= blockCount; c++) {
+			for (let c = 0; c < blockCount; c++) {
 				let start = c * J2J_VALUE;
 				let end = start + J2J_VALUE;
 				let remain = end - start;
-
+				
 				let idx = 0;
 				while (remain > 0) {
-					let ee = start + 10240;
+					let ee = start + CHUNK_SIZE;
 					if (ee > end) {
 						ee = end;
 					}
 					let chunk = new Uint8Array(await file.slice(start, ee).arrayBuffer());
 					for (let i = 0; i < chunk.byteLength; i++) {
+						chunk[i] ^= iv[idx];
+						iv[idx] ^= chunk[i];
 						idx += 1;
-						chunk[idx] ^= iv[idx];
-						iv[idx] ^= chunk[idx];
 					}
+					start += chunk.byteLength;
+					remain -= chunk.byteLength
 					await writer.write(chunk);
-					remain -= ee - start;
 				}
 			}
 
@@ -152,37 +154,39 @@
 				let start = blockCount * J2J_VALUE;
 				let end = filesize - blockCount * J2J_VALUE - J2J_FOOTER_SIZE;
 				let remain = end - start;
-
+				
 				while (remain > 0) {
-					let ee = start + 10240;
+					let ee = start + CHUNK_SIZE;
 					if (ee > end) {
 						ee = end;
 					}
 					let chunk = new Uint8Array(await file.slice(start, ee).arrayBuffer());
-					await writer.write(chunk);
 					remain -= ee - start;
+					start += chunk.byteLength;
+					await writer.write(chunk);
 				}
 			}
 
-			for (let c = 0; c <= blockCount; c++) {
+			for (let c = 0; c < blockCount; c++) {
 				let start = filesize - blockCount * J2J_VALUE - J2J_FOOTER_SIZE + c * J2J_VALUE;
 				let end = filesize - blockCount * J2J_VALUE - J2J_FOOTER_SIZE + c * J2J_VALUE + J2J_VALUE;
 				let remain = end - start;
-
+				
 				let idx = 0;
 				while (remain > 0) {
-					let ee = start + 10240;
+					let ee = start + CHUNK_SIZE;
 					if (ee > end) {
 						ee = end;
 					}
 					let chunk = new Uint8Array(await file.slice(start, ee).arrayBuffer());
 					for (let i = 0; i < chunk.byteLength; i++) {
+						chunk[i] ^= iv[idx];
+						iv[idx] ^= chunk[i];
 						idx += 1;
-						chunk[idx] ^= iv[idx];
-						iv[idx] ^= chunk[idx];
 					}
+					start += chunk.byteLength;
+					remain -= chunk.byteLength
 					await writer.write(chunk);
-					remain -= ee - start;
 				}
 			}
 			writer.close();
