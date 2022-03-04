@@ -1,5 +1,4 @@
 <script lang="ts">
-	const CHUNK_SIZE = 1024000;
 	const J2J_VALUE = 10240000;
 	const J2J_FOOTER_SIZE = 32;
 	
@@ -106,6 +105,18 @@
 				alert('취소하셨습니다.');
 				return;
 			}
+
+			let chunk_size_str = prompt('청크 크기를 입력해주세요 (메모리 사용량 과 속도가 비례)', '102400')
+			if (chunk_size_str == null) {
+				alert('취소하셨습니다.');
+				return;
+			}
+			if (isNaN(parseInt(chunk_size_str))) {
+				alert('숫자를 입력해주세요.');
+				return;
+			}
+			let chunk_size = parseInt(chunk_size_str);
+
 			let blockCount = Math.max(Math.floor(J2J_VALUE / (filesize * 100)), 1);
 
 			let iv: Uint8Array;
@@ -134,7 +145,7 @@
 				
 				let idx = 0;
 				while (remain > 0) {
-					let ee = start + CHUNK_SIZE;
+					let ee = start + chunk_size;
 					if (ee > end) {
 						ee = end;
 					}
@@ -156,7 +167,7 @@
 				let remain = end - start;
 				
 				while (remain > 0) {
-					let ee = start + CHUNK_SIZE;
+					let ee = start + chunk_size;
 					if (ee > end) {
 						ee = end;
 					}
@@ -174,7 +185,7 @@
 				
 				let idx = 0;
 				while (remain > 0) {
-					let ee = start + CHUNK_SIZE;
+					let ee = start + chunk_size;
 					if (ee > end) {
 						ee = end;
 					}
